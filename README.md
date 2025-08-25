@@ -11,7 +11,7 @@ This repository uses GitHub Actions to fetch daily prices for selected cryptocur
   `{coin}_{year}_daily_price_data_provided_by_coingecko.csv`  
   Example: `bitcoin_2025_daily_price_data_provided_by_coingecko.csv`
 
-- **CSV columns:** `date, coin, usd, eur, chf`
+- **CSV columns:** `date (dd-mm-yyyy format), coingecko_coin_id, coin_symbol, coin_name, price_usd, price_eur, price_chf`
 
 ## API Key Setup
 
