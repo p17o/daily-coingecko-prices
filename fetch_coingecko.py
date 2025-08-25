@@ -56,6 +56,9 @@ yesterday = today - timedelta(days=1)
 max_lookback = date(2025, 1, 1)
 year = yesterday.year
 
+# Create the 'data' directory if it doesn't exist
+os.makedirs("data", exist_ok=True)
+
 for coin in coins:
     filename = f"data/{coin}_{year}_daily_price_data_provided_by_coingecko.csv"
     last_date = get_last_date_in_csv(filename)
