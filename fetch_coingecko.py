@@ -52,7 +52,8 @@ def request_price(coin, date_str, api_key):
 
 today = datetime.utcnow().date()
 yesterday = today - timedelta(days=1)
-max_lookback = today - timedelta(days=360)
+#max_lookback = today - timedelta(days=360)
+max_lookback = date(2025, 1, 1)
 year = yesterday.year
 
 for coin in coins:
