@@ -1,0 +1,28 @@
+name: Hourly CoinGecko Prices
+
+on:
+  schedule:
+    - cron: '55 * * * *' # Runs every hour at the 55th minute
+
+jobs:
+  fetch-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run fetch_coingecko.py
+        env:
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+        run: python fetch_coingecko.py
+      - name: Commit CSV files
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add *_daily_price_data_provided_by_coingecko.csv
+          git commit -m "Hourly CoinGecko prices for ${{ github.run_id }}"
+          git push
