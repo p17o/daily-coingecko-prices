@@ -11,9 +11,8 @@ import requests
 # ----------------------------
 # Configuration
 # ----------------------------
-API_KEY = os.environ.get("COINGECKO_API_KEY")  # Optional for PRO; leave unset for free API
+API_KEY = os.environ.get("COINGECKO_API_KEY")
 COIN_ID = os.environ.get("COIN_ID", "nym")
-# Comma-separated list; defaults to USD and EUR (case-insensitive); stored lower-case in filenames
 CURRENCIES = [c.strip().lower() for c in os.environ.get("CURRENCIES", "usd,eur,chf").split(",") if c.strip()]
 START_BASELINE = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)  # First-run baseline
 DATA_DIR = os.environ.get("DATA_DIR", "data")
