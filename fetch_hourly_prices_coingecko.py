@@ -18,6 +18,10 @@ START_BASELINE = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)  # First-run
 DATA_DIR = os.environ.get("DATA_DIR", "data")
 API_URL_TEMPLATE = "https://api.coingecko.com/api/v3/coins/{coin}/market_chart/range"
 
+# Range constraints
+MIN_RANGE_DAYS = 2
+MAX_RANGE_DAYS = 89
+
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -49,18 +53,25 @@ def _read_last_timestamp(csv_path: str) -> Optional[datetime]:
     return last_ts.to_pydatetime()
 
 
-def _decide_window(last_ts: Optional[datetime]) -> Tuple[datetime, datetime]:
-    """Return (start, end) in UTC following the new logic:
-    - If CSV doesn't exist (last_ts is None): start = 1 Jan 2025 00:00:00 UTC; end = start + 89 days.
-    - If CSV exists: start = last_ts; end = start + 89 days.
-    Note: we do NOT clamp to 'now'; CoinGecko will return up to the present if 'end' is in the future.
+def _decide_window(last_ts: Optional[datetime], now_utc: datetime) -> Tuple[datetime, datetime]:
+    """Return (start, end) in UTC following the refined logic:
+    - If CSV doesn't exist (last_ts is None): start = 1 Jan 2025 00:00:00 UTC.
+    - If CSV exists: start = last_ts.
+    - Raw end = start + 89 days.
+    - Cap end at (now - 2 days) to keep hourly granularity and avoid partial/5-minutely data.
+    - Ensure at least 2 days span by moving start back if needed.
     """
-    if last_ts is None:
-        start = START_BASELINE
-    else:
-        start = last_ts.astimezone(timezone.utc)
+    start = START_BASELINE if last_ts is None else (last_ts.astimezone(timezone.utc)+ timedelta(hours=1))
+    raw_end = start + timedelta(days=MAX_RANGE_DAYS)
+    end_cap = now_utc - timedelta(days=MIN_RANGE_DAYS)
+    end = min(raw_end, end_cap)
 
-    end = start + timedelta(days=89)
+    # Guarantee at least 2 days range; if end <= start (or too short), backfill start
+    min_span = timedelta(days=MIN_RANGE_DAYS)
+    if end <= start or (end - start) < min_span:
+        end = max(end, end_cap)  # ensure end is not ahead of cap
+        start = end - min_span
+
     return start, end
 
 
@@ -114,21 +125,16 @@ def _append_to_csv(csv_path: str, rows: List[Dict]) -> int:
     return len(new_df)
 
 
-def process_currency(currency: str) -> None:
-    # Decide CSV path using the intended start year; must first determine start based on last_ts (which needs a path)
-    # For first run when the file doesn't exist, we use baseline to name the file by 2025.
+def process_currency(currency: str, now_utc: datetime) -> None:
+    # Use baseline path to find last_ts for this currency; on subsequent runs we may switch filename year
     tentative_path = _csv_path_for(currency, START_BASELINE)
     last_ts = _read_last_timestamp(tentative_path)
 
-    # If the file existed, the 'start' year (for naming) should be last_ts.year; otherwise 2025.
-    if last_ts is None:
-        naming_start = START_BASELINE
-        csv_path = tentative_path
-    else:
-        naming_start = last_ts
-        csv_path = _csv_path_for(currency, naming_start)
+    start, end = _decide_window(last_ts, now_utc)
 
-    start, end = _decide_window(last_ts)
+    # For naming: first run uses 2025; subsequent uses the chosen start
+    naming_start = START_BASELINE if last_ts is None else start
+    csv_path = _csv_path_for(currency, naming_start)
 
     # Log selection
     log = {
@@ -138,6 +144,7 @@ def process_currency(currency: str) -> None:
         "request_start_utc": start.isoformat(),
         "request_end_utc": end.isoformat(),
         "request_span_days": (end - start).total_seconds() / 86400.0,
+        "end_cap_now_minus_2d": (now_utc - timedelta(days=2)).isoformat(),
     }
     print(json.dumps(log, indent=2))
 
@@ -147,9 +154,10 @@ def process_currency(currency: str) -> None:
 
 
 def main():
+    now_utc = datetime.now(timezone.utc)
     for currency in CURRENCIES:
         try:
-            process_currency(currency)
+            process_currency(currency, now_utc)
         except Exception as e:
             print(f"Error processing {currency}: {e}", file=sys.stderr)
 
