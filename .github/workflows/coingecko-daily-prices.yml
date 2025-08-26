@@ -19,7 +19,7 @@ jobs:
       - name: Run fetch_coingecko.py
         env:
           COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
-        run: python fetch_coingecko.py
+        run: python fetch_daily_prices_coingecko.py
       - name: Commit CSV files
         run: |
           git config --global user.name "github-actions[bot]"
