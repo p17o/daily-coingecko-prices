@@ -148,9 +148,12 @@ def process_currency(currency: str, now_utc: datetime) -> None:
     }
     print(json.dumps(log, indent=2))
 
-    rows = _fetch_prices(COIN_ID, currency, start, end)
-    appended = _append_to_csv(csv_path, rows)
-    print(f"[{currency}] fetched {len(rows)} rows; appended {appended} rows -> {csv_path}")
+    if last_ts >= end:
+        print(f"[{currency}] data up to date, request not sent")
+    else:
+        rows = _fetch_prices(COIN_ID, currency, start, end)
+        appended = _append_to_csv(csv_path, rows)
+        print(f"[{currency}] fetched {len(rows)} rows; appended {appended} rows -> {csv_path}")
 
 
 def main():
