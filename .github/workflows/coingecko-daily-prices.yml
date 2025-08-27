@@ -3,7 +3,7 @@ name: Daily CoinGecko Prices
 on:
   workflow_dispatch:
   schedule:
-    - cron: '55 * * * *'
+    - cron: '38,48,58 * * * *'
 
 jobs:
   fetch-prices:
