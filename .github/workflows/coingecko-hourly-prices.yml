@@ -3,7 +3,7 @@ name: Hourly CoinGecko Prices
 on:
   workflow_dispatch:
   schedule:
-    - cron: '5 3 * * *'
+    - cron: '5 3 * * MON'
 
 jobs:
   fetch-prices:
